@@ -1,0 +1,5 @@
+{
+  "rust-analyzer.cargo.features": "all",
+  "editor.formatOnSave": true,
+  "files.trimTrailingWhitespace": true
+}

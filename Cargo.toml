@@ -1,0 +1,31 @@
+[package]
+name = "cite-right"
+version = "0.1.0"
+edition = "2021"
+description = "Deterministic legal citation proof gate for AI-drafted legal text"
+license = "MIT"
+
+[[bin]]
+name = "citeright"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1.0"
+chrono = { version = "0.4", features = ["serde"] }
+clap = { version = "4.5", features = ["derive", "env"] }
+regex = "1.10"
+reqwest = { version = "0.12", features = ["json", "blocking", "rustls-tls"], default-features = false }
+scraper = "0.19"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = { version = "1.0", features = ["preserve_order"] }
+sha2 = "0.10"
+thiserror = "1.0"
+uuid = { version = "1.8", features = ["v4", "serde"] }
+zip = "0.6"
+quick-xml = "0.31"
+lopdf = "0.32"
+walkdir = "2.5"
+
+[dev-dependencies]
+tempfile = "3.10"
+httpmock = "0.7"

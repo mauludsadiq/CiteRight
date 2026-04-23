@@ -1,0 +1,8 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    { "label": "cargo build", "type": "shell", "command": "cargo build", "group": "build", "problemMatcher": ["$rustc"] },
+    { "label": "cargo test", "type": "shell", "command": "cargo test", "group": "test", "problemMatcher": ["$rustc"] },
+    { "label": "verify sample", "type": "shell", "command": "cargo run -- verify fixtures/sample_brief.md --out out/sample --offline-fixtures fixtures/courtlistener_fixture.json", "group": "test", "problemMatcher": [] }
+  ]
+}

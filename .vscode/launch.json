@@ -1,0 +1,13 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug Cite Right sample",
+      "cargo": { "args": ["build", "--bin", "citeright"] },
+      "args": ["verify", "fixtures/sample_brief.md", "--out", "out/sample", "--offline-fixtures", "fixtures/courtlistener_fixture.json"],
+      "cwd": "${workspaceFolder}"
+    }
+  ]
+}
