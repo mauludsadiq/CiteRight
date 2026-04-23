@@ -5,6 +5,7 @@ mod emit;
 mod extract;
 mod hash;
 mod models;
+mod planner;
 mod verify;
 
 use anyhow::{Context, Result};
@@ -43,6 +44,7 @@ enum Commands {
     },
     Extract { input: PathBuf },
     Claims { input: PathBuf },
+    Plan { input: PathBuf },
 }
 
 fn main() -> Result<()> {
@@ -61,6 +63,13 @@ fn main() -> Result<()> {
             let text = document::read_document(&input)?;
             let claims = claims::extract_legal_claims(&text)?;
             println!("{}", serde_json::to_string_pretty(&claims)?);
+            Ok(())
+        }
+        Commands::Plan { input } => {
+            let text = document::read_document(&input)?;
+            let claims = claims::extract_legal_claims(&text)?;
+            let needs = planner::plan_citation_needs(&claims)?;
+            println!("{}", serde_json::to_string_pretty(&needs)?);
             Ok(())
         }
     }
