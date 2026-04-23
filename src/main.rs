@@ -1,3 +1,4 @@
+mod claims;
 mod courtlistener;
 mod document;
 mod emit;
@@ -41,6 +42,7 @@ enum Commands {
         heal_unique_normalized: bool,
     },
     Extract { input: PathBuf },
+    Claims { input: PathBuf },
 }
 
 fn main() -> Result<()> {
@@ -52,6 +54,12 @@ fn main() -> Result<()> {
         Commands::Extract { input } => {
             let text = document::read_document(&input)?;
             let claims = extract::extract_citations(&text)?;
+            println!("{}", serde_json::to_string_pretty(&claims)?);
+            Ok(())
+        }
+        Commands::Claims { input } => {
+            let text = document::read_document(&input)?;
+            let claims = claims::extract_legal_claims(&text)?;
             println!("{}", serde_json::to_string_pretty(&claims)?);
             Ok(())
         }
