@@ -4,5 +4,5 @@ builder = "DOCKERFILE"
 [deploy]
 startCommand = "/usr/local/bin/citeright-server"
 healthcheckPath = "/health"
-healthcheckTimeout = 30
+healthcheckTimeout = 60
 restartPolicyType = "ON_FAILURE"

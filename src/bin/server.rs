@@ -37,7 +37,8 @@ async fn main() {
         .route("/v1/verify", post(handle_verify))
         .layer(CorsLayer::permissive());
 
-    let port: u16 = std::env::var("CITERIGHT_PORT")
+    let port: u16 = std::env::var("PORT")
+        .or_else(|_| std::env::var("CITERIGHT_PORT"))
         .unwrap_or_else(|_| "3000".to_string())
         .parse()
         .unwrap_or(3000);
