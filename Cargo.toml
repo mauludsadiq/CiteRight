@@ -5,6 +5,10 @@ edition = "2021"
 description = "Deterministic legal citation proof gate for AI-drafted legal text"
 license = "MIT"
 
+[lib]
+name = "citeright"
+path = "src/lib.rs"
+
 [[bin]]
 name = "citeright"
 path = "src/main.rs"
@@ -22,6 +26,9 @@ sha2 = "0.10"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 hex = "0.4"
+axum = { version = "0.7", features = ["multipart"], optional = true }
+tokio = { version = "1", features = ["full"], optional = true }
+tower-http = { version = "0.5", features = ["fs", "cors"], optional = true }
 thiserror = "1.0"
 uuid = { version = "1.8", features = ["v4", "serde"] }
 zip = "0.6"
@@ -35,3 +42,9 @@ httpmock = "0.7"
 
 [features]
 live-tests = []
+server = ["axum", "tokio", "tower-http", "uuid/v4"]
+
+[[bin]]
+name = "citeright-server"
+path = "src/bin/server.rs"
+required-features = ["server"]

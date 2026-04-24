@@ -52,6 +52,7 @@ fn normalize_lookup_records(raw: &[crate::models::LookupRecord]) -> Vec<LookupRe
 }
 
 /// Persist snapshot so it becomes replayable like fixtures
+#[allow(dead_code)]
 pub(crate) fn persist_snapshot(out_dir: &Path, snapshot: &Snapshot) -> Result<()> {
     std::fs::create_dir_all(out_dir)?;
 
