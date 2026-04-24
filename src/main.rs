@@ -8,6 +8,7 @@ mod models;
 mod planner;
 mod candidates;
 mod artifact;
+mod bindings;
 mod audit;
 mod verify_selected;
 mod resolver;
@@ -57,6 +58,7 @@ enum Commands {
     Audit { input: PathBuf, #[arg(long)] offline_fixtures: PathBuf, #[arg(long, default_value = "out/ai_audit")] out: PathBuf },
     VerifyAi { input: PathBuf, #[arg(long)] offline_fixtures: PathBuf, #[arg(long, default_value = "out/ai_verify")] out: PathBuf },
     Artifacts { input: PathBuf, #[arg(long)] offline_fixtures: PathBuf },
+    Bind { input: PathBuf, #[arg(long)] offline_fixtures: PathBuf },
 }
 
 fn main() -> Result<()> {
@@ -139,6 +141,20 @@ fn main() -> Result<()> {
             let lookups = lookup.lookup_text(&text)?;
             let artifacts = artifact::artifacts_from_lookup_results(&lookups)?;
             println!("{}", serde_json::to_string_pretty(&artifacts)?);
+            Ok(())
+        }
+        Commands::Bind { input, offline_fixtures } => {
+            let text = document::read_document(&input)?;
+            let claims = claims::extract_legal_claims(&text)?;
+            let needs = planner::plan_citation_needs(&claims)?;
+            let candidates = candidates::generate_candidates(&needs)?;
+            let resolutions = resolver::resolve_candidates_with_fixtures(&candidates, &offline_fixtures)?;
+            let selections = selector::select_best_candidates(&needs, &candidates, &resolutions)?;
+            let lookup = courtlistener::FixtureLookup::from_file(&offline_fixtures)?;
+            let lookups = lookup.lookup_text(&text)?;
+            let artifacts = artifact::artifacts_from_lookup_results(&lookups)?;
+            let bindings = bindings::bind_selections_to_artifacts(&selections, &artifacts)?;
+            println!("{}", serde_json::to_string_pretty(&bindings)?);
             Ok(())
         }
     }
