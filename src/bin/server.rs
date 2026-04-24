@@ -47,8 +47,11 @@ async fn main() {
     info!("CiteRight server listening on http://{}", addr);
     info!("PORT env var: {:?}", std::env::var("PORT"));
 
-    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
-    axum::serve(listener, app).await.unwrap();
+    let listener = tokio::net::TcpListener::bind(addr).await
+        .unwrap_or_else(|e| { eprintln!("Failed to bind to {}: {}", addr, e); std::process::exit(1); });
+    info!("Successfully bound to {}", addr);
+    axum::serve(listener, app).await
+        .unwrap_or_else(|e| { eprintln!("Server error: {}", e); std::process::exit(1); });
 }
 
 async fn health() -> Json<HealthResponse> {
