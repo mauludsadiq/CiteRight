@@ -1,4 +1,3 @@
-use tracing::{info, debug};
 use anyhow::Result;
 use crate::models::LookupRecord;
 use crate::hash::sha256_json;
