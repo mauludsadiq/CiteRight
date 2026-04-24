@@ -8,9 +8,11 @@ mod models;
 mod planner;
 mod candidates;
 mod artifact;
+mod snapshot;
 mod bindings;
 mod audit;
 mod verify_selected;
+mod report;
 mod resolver;
 mod selector;
 mod verify;
@@ -56,9 +58,10 @@ enum Commands {
     Resolve { input: PathBuf, #[arg(long)] offline_fixtures: PathBuf },
     Select { input: PathBuf, #[arg(long)] offline_fixtures: PathBuf },
     Audit { input: PathBuf, #[arg(long)] offline_fixtures: PathBuf, #[arg(long, default_value = "out/ai_audit")] out: PathBuf },
-    VerifyAi { input: PathBuf, #[arg(long)] offline_fixtures: PathBuf, #[arg(long, default_value = "out/ai_verify")] out: PathBuf },
+    VerifyAi { input: PathBuf, offline_fixtures: PathBuf, out: PathBuf, #[arg(long)] live: bool, #[arg(long)] token: Option<String>, #[arg(long)] endpoint: Option<String> },
     Artifacts { input: PathBuf, #[arg(long)] offline_fixtures: PathBuf },
     Bind { input: PathBuf, #[arg(long)] offline_fixtures: PathBuf },
+    Report { input: PathBuf, #[arg(long)] offline_fixtures: PathBuf, #[arg(long, default_value = "out/bound_citations_report.md")] out: PathBuf },
 }
 
 fn main() -> Result<()> {
@@ -124,15 +127,25 @@ fn main() -> Result<()> {
             println!("{}", serde_json::to_string_pretty(&receipt)?);
             Ok(())
         }
-        Commands::VerifyAi { input, offline_fixtures, out: _ } => {
+        Commands::VerifyAi { input, offline_fixtures, out, live, token, endpoint } => {
             let text = document::read_document(&input)?;
             let claims = claims::extract_legal_claims(&text)?;
             let needs = planner::plan_citation_needs(&claims)?;
             let candidates = candidates::generate_candidates(&needs)?;
             let resolutions = resolver::resolve_candidates_with_fixtures(&candidates, &offline_fixtures)?;
             let selections = selector::select_best_candidates(&needs, &candidates, &resolutions)?;
-            let selected_claims = verify_selected::selected_to_claims(&selections)?;
-            println!("{}", serde_json::to_string_pretty(&selected_claims)?);
+            let _selected_claims = verify_selected::selected_to_claims(&selections)?;
+            let lookup = courtlistener::FixtureLookup::from_file(&offline_fixtures)?;
+            let lookups = if live {
+                let client = CourtListenerClient::new(token.clone(), endpoint.clone())?;
+                let snapshot = snapshot::fetch_live_snapshot(&text, &client)?;
+snapshot::persist_snapshot(&out, &snapshot)?;
+                snapshot.records
+            } else {
+                lookup.lookup_text(&text)?
+            };
+            let artifacts = artifact::artifacts_from_lookup_results(&lookups)?;
+            println!("{}", serde_json::to_string_pretty(&artifacts)?);
             Ok(())
         }
         Commands::Artifacts { input, offline_fixtures } => {
@@ -155,6 +168,21 @@ fn main() -> Result<()> {
             let artifacts = artifact::artifacts_from_lookup_results(&lookups)?;
             let bindings = bindings::bind_selections_to_artifacts(&selections, &artifacts)?;
             println!("{}", serde_json::to_string_pretty(&bindings)?);
+            Ok(())
+        }
+        Commands::Report { input, offline_fixtures, out } => {
+            let text = document::read_document(&input)?;
+            let claims = claims::extract_legal_claims(&text)?;
+            let needs = planner::plan_citation_needs(&claims)?;
+            let candidates = candidates::generate_candidates(&needs)?;
+            let resolutions = resolver::resolve_candidates_with_fixtures(&candidates, &offline_fixtures)?;
+            let selections = selector::select_best_candidates(&needs, &candidates, &resolutions)?;
+            let lookup = courtlistener::FixtureLookup::from_file(&offline_fixtures)?;
+            let lookups = lookup.lookup_text(&text)?;
+            let artifacts = artifact::artifacts_from_lookup_results(&lookups)?;
+            let bindings = bindings::bind_selections_to_artifacts(&selections, &artifacts)?;
+            report::write_binding_report(&out, &bindings)?;
+            println!("{}", out.display());
             Ok(())
         }
     }
