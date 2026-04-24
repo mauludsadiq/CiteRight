@@ -146,6 +146,36 @@ Set your OpenAI API key to enable assessment:
 
 Holdings extraction runs without an API key. LLM assessment requires one.
 
+## Argument Graph
+
+When --analyze runs, CiteRight builds a Legal Argument Graph over the verified citations. The graph is a structured representation of the legal argument with cryptographic integrity.
+
+Each verified case becomes a CaseNode containing the canonical ID, case name, and extracted holdings. Claims from the brief are mapped to the cases they cite. Edges between cases represent typed legal relationships: SUPPORTS, CONTRADICTS, DISTINGUISHES, or CITES. The entire graph is sealed with a SHA-256 digest.
+
+Example graph output:
+
+    {
+      "nodes": {
+        "cluster:2812209": {
+          "canonical_id": "cluster:2812209",
+          "case_name": "Obergefell v. Hodges",
+          "holdings": ["We hold that same-sex couples may exercise the fundamental right to marry."],
+          "rule_extracted": "We hold that same-sex couples may exercise the fundamental right to marry."
+        }
+      },
+      "edges": [],
+      "claims": [
+        {
+          "claim_id": "cluster:2812209",
+          "cited_case_ids": ["cluster:2812209"],
+          "assessment": "Supported: The claim accurately reflects the holding..."
+        }
+      ],
+      "graph_digest": "sha256:..."
+    }
+
+The graph_digest commits the entire argument structure -- nodes, edges, and claim assessments -- to a single verifiable hash. This means the legal reasoning output is as auditable as the citation existence layer beneath it.
+
 ## Architecture
 
 CiteRight is built in two layers.
