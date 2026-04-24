@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y \
 
 # Cache dependencies
 COPY Cargo.toml Cargo.lock ./
-RUN mkdir src && echo "fn main() {}" > src/main.rs
+RUN mkdir -p src/bin && echo "fn main() {}" > src/main.rs && echo "" > src/lib.rs && echo "fn main() {}" > src/bin/server.rs
 RUN cargo build --release --features server
 RUN rm -rf src
 
