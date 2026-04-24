@@ -129,7 +129,11 @@ async fn handle_verify(mut multipart: Multipart) -> impl IntoResponse {
 
     // Write to temp file for pipeline processing
     let tmp_dir = std::env::temp_dir();
-    let tmp_path = tmp_dir.join(format!("citeright_{}", uuid::Uuid::new_v4()));
+    let ext = std::path::Path::new(&filename)
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("md");
+    let tmp_path = tmp_dir.join(format!("citeright_{}.{}", uuid::Uuid::new_v4(), ext));
     let out_dir = tmp_dir.join(format!("citeright_out_{}", uuid::Uuid::new_v4()));
 
     if let Err(e) = std::fs::write(&tmp_path, &bytes) {
