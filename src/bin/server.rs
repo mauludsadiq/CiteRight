@@ -207,12 +207,21 @@ fn run_pipeline(
 
     // Use live or fixture lookup
     let lookups = if live {
-        let client = citeright::courtlistener::CourtListenerClient::new(token.clone(), None)?;
         use citeright::courtlistener::CitationLookup;
+        let client = citeright::courtlistener::CourtListenerClient::new(token.clone(), None)?;
         client.lookup_text(&text)?
     } else {
-        // No fixture in server mode -- return empty
-        vec![]
+        // Use fixture from env var or default path
+        let fixture_path = std::env::var("CITERIGHT_FIXTURE")
+            .unwrap_or_else(|_| "fixtures/courtlistener_fixture.json".to_string());
+        let fixture_path = std::path::Path::new(&fixture_path);
+        if fixture_path.exists() {
+            use citeright::courtlistener::CitationLookup;
+            citeright::courtlistener::FixtureLookup::from_file(fixture_path)?
+                .lookup_text(&text)?
+        } else {
+            vec![]
+        }
     };
 
     let artifacts = artifact::artifacts_from_lookup_results(&lookups)?;
