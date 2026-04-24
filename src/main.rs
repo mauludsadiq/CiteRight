@@ -7,6 +7,7 @@ mod hash;
 mod models;
 mod planner;
 mod candidates;
+mod resolver;
 mod verify;
 
 use anyhow::{Context, Result};
@@ -47,6 +48,7 @@ enum Commands {
     Claims { input: PathBuf },
     Plan { input: PathBuf },
     Candidates { input: PathBuf },
+    Resolve { input: PathBuf, #[arg(long)] offline_fixtures: PathBuf },
 }
 
 fn main() -> Result<()> {
@@ -80,6 +82,15 @@ fn main() -> Result<()> {
             let needs = planner::plan_citation_needs(&claims)?;
             let candidates = candidates::generate_candidates(&needs)?;
             println!("{}", serde_json::to_string_pretty(&candidates)?);
+            Ok(())
+        }
+        Commands::Resolve { input, offline_fixtures } => {
+            let text = document::read_document(&input)?;
+            let claims = claims::extract_legal_claims(&text)?;
+            let needs = planner::plan_citation_needs(&claims)?;
+            let candidates = candidates::generate_candidates(&needs)?;
+            let resolutions = resolver::resolve_candidates_with_fixtures(&candidates, &offline_fixtures)?;
+            println!("{}", serde_json::to_string_pretty(&resolutions)?);
             Ok(())
         }
     }
