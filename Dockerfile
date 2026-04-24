@@ -41,6 +41,4 @@ COPY fixtures/ /app/fixtures/
 ENV RUST_LOG=citeright=info
 ENV CITERIGHT_FIXTURE=/app/fixtures/courtlistener_fixture.json
 
-EXPOSE 3000
-
 ENTRYPOINT ["/usr/local/bin/citeright-server"]
