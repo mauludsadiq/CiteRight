@@ -119,6 +119,41 @@ A VERIFIED result means the case exists. It does not mean the quote is accurate,
 
 CiteRight is the machine-verifiable layer beneath attorney judgment, not a replacement for it.
 
+## Holding Analysis (--analyze)
+
+When you add --analyze, CiteRight goes beyond existence verification into Layer 2: it fetches the actual majority opinion from CourtListener, extracts the real holdings using pattern matching, and asks an LLM whether the brief's claim matches what the case actually held.
+
+    cargo run -- verify-ai brief.md fixtures/ out/ \
+      --live --token $COURTLISTENER_TOKEN \
+      --analyze \
+      --block-unverified
+
+This catches two classes of AI hallucination:
+
+The first is citation existence failure -- the case does not exist at all. The second is citation mischaracterization -- the case exists but does not support the proposition for which it is cited. The Sullivan and Cromwell incident involved the second class. --analyze is built to catch it.
+
+Example output from a real run against Obergefell v. Hodges and Conti v. Perdue Bioenergy:
+
+    Obergefell: Supported (High confidence)
+    "The claim accurately reflects the holding... constitutional guarantees cannot be overridden by state laws."
+
+    Conti: Unsupported (High confidence)
+    "The claim about constitutional guarantees has nothing to do with Conti's actual holding on commodity forward agreements under 546(g)."
+
+Set your OpenAI API key to enable assessment:
+
+    export OPENAI_API_KEY=your_key_here
+
+Holdings extraction runs without an API key. LLM assessment requires one.
+
+## Architecture
+
+CiteRight is built in two layers.
+
+Layer 1 is the Citation Grounding Layer. It is deterministic, replayable, and non-LLM-dependent. It extracts citations, resolves cases, binds to canonical artifacts, verifies existence, and produces SHA-256 audit receipts. This layer cannot be wrong about facts.
+
+Layer 2 is the Legal Reasoning Layer. It fetches majority opinion text, extracts structured holdings, and uses an LLM to assess whether the brief's claim matches the holding. This layer can be wrong -- it is advisory, not authoritative. The grounding layer beneath it remains deterministic regardless of what the reasoning layer concludes.
+
 ## Legal Notice
 
 CiteRight is a verification tool, not legal advice.
