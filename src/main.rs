@@ -19,6 +19,8 @@ mod selector;
 mod verify;
 
 use anyhow::{Context, Result};
+use tracing::{info, warn, error};
+use tracing_subscriber::EnvFilter;
 use chrono::Utc;
 use clap::{Parser, Subcommand};
 use courtlistener::{CitationLookup, CourtListenerClient, FixtureLookup};
@@ -67,6 +69,13 @@ enum Commands {
 }
 
 fn main() -> Result<()> {
+    tracing_subscriber::fmt()
+        .with_env_filter(EnvFilter::from_default_env()
+            .add_directive("citeright=info".parse().unwrap()))
+        .with_target(false)
+        .compact()
+        .init();
+
     let cli = Cli::parse();
     match cli.command {
         Commands::Verify { input, out, courtlistener_token, courtlistener_endpoint, offline_fixtures, block_unverified, heal_unique_normalized } => {
@@ -136,6 +145,7 @@ fn main() -> Result<()> {
             Ok(())
         }
         Commands::VerifyAi { input, offline_fixtures, out, live, token, endpoint, attorney_name, bar_number, jurisdiction, block_unverified, analyze } => {
+            info!("Starting verify-ai on {}", input.display());
             let text = document::read_document(&input)?;
             let claims = claims::extract_legal_claims(&text)?;
             let needs = planner::plan_citation_needs(&claims)?;
@@ -156,6 +166,7 @@ snapshot::persist_snapshot(&out, &snapshot)?;
             let artifacts = artifact::artifacts_from_lookup_results(&lookups)?;
             let verified_count = artifacts.iter().filter(|a| a.verification_status == crate::models::VerificationStatus::Verified).count();
             let unverified_count = artifacts.iter().filter(|a| a.verification_status != crate::models::VerificationStatus::Verified).count();
+            info!("Verification complete: {} verified, {} unverified", verified_count, unverified_count);
             let _receipt = audit::write_ai_audit(&out, &input, &claims, &needs, &candidates, &resolutions, &selections, audit::AttestationParams {
                 attorney_name,
                 bar_number,
@@ -165,6 +176,7 @@ snapshot::persist_snapshot(&out, &snapshot)?;
             })?;
             println!("{}", serde_json::to_string_pretty(&artifacts)?);
             if analyze {
+                info!("Running holding analysis on {} verified artifacts", verified_count);
                 let analysis_token = token.clone()
                     .or_else(|| std::env::var("COURTLISTENER_TOKEN").ok())
                     .unwrap_or_default();
@@ -188,7 +200,7 @@ snapshot::persist_snapshot(&out, &snapshot)?;
                                 );
                                 analyses.push(result);
                             }
-                            Err(e) => eprintln!("Analysis skipped for {}: {}", artifact.case_name, e),
+                            Err(e) => warn!("Analysis skipped for {}: {}", artifact.case_name, e),
                         }
                     }
                 }
@@ -213,7 +225,7 @@ snapshot::persist_snapshot(&out, &snapshot)?;
                 }
             }
             if block_unverified && unverified_count > 0 {
-                eprintln!("BLOCKED: {} unverified citation(s) found. Filing gate failed.", unverified_count);
+                error!("BLOCKED: {} unverified citation(s) found. Filing gate failed.", unverified_count);
                 std::process::exit(1);
             }
             Ok(())
