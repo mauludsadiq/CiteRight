@@ -1,0 +1,20 @@
+version: "3.8"
+
+services:
+  citeright:
+    build: .
+    environment:
+      - COURTLISTENER_TOKEN=${COURTLISTENER_TOKEN}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - RUST_LOG=citeright=info
+    volumes:
+      - ./fixtures:/app/fixtures:ro
+      - ./input:/app/input:ro
+      - ./output:/app/output
+    command: >
+      verify-ai
+      /app/input/brief.md
+      /app/fixtures/courtlistener_fixture.json
+      /app/output
+      --live
+      --block-unverified

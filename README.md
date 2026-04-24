@@ -17,6 +17,29 @@ If it does not, the citation is flagged UNVERIFIED and the pipeline exits non-ze
 
 Silence is never success. Every citation produces an artifact.
 
+## Docker
+
+Build and run with Docker:
+
+    docker build -t citeright .
+    docker run --rm \
+      -e COURTLISTENER_TOKEN=your_token \
+      -e OPENAI_API_KEY=your_key \
+      -v $(pwd)/fixtures:/app/fixtures:ro \
+      -v $(pwd)/input:/app/input:ro \
+      -v $(pwd)/output:/app/output \
+      citeright verify-ai \
+        /app/input/brief.md \
+        /app/fixtures/courtlistener_fixture.json \
+        /app/output \
+        --live --block-unverified
+
+Or with docker-compose:
+
+    cp .env.example .env  # add your tokens
+    mkdir input && cp your_brief.md input/brief.md
+    docker-compose up
+
 ## Install
 
     git clone https://github.com/mauludsadiq/CiteRight.git
