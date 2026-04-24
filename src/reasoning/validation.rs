@@ -1,4 +1,4 @@
-use crate::reasoning::applicability::{ApplicabilityScore, ApplicabilityVerdict};
+use crate::reasoning::applicability::ApplicabilityScore;
 use crate::reasoning::argument_graph::ArgumentGraph;
 use serde::{Deserialize, Serialize};
 

@@ -1,5 +1,4 @@
 use crate::artifact::CaseArtifact;
-use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -93,7 +92,7 @@ fn extract_sentences(
 
         // Find sentence start (look back for period or start of text)
         let sentence_start = text[..abs_pos]
-            .rfind(|c| c == '.' || c == '\n')
+            .rfind(['.', '\n'])
             .map(|p| p + 1)
             .unwrap_or(0);
 

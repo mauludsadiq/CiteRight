@@ -43,9 +43,9 @@ fn normalize_lookup_records(raw: &[crate::models::LookupRecord]) -> Vec<LookupRe
                 clusters: r.clusters.clone(),
                 source: "live_normalized".to_string(),
                 raw_response_digest: r.raw_response_digest.clone(),
-                api_status: r.api_status.clone(),
+                api_status: r.api_status,
                 error_message: r.error_message.clone(),
-                http_status: r.http_status.clone(),
+                http_status: r.http_status,
                 ..r.clone()
             })
         .collect()

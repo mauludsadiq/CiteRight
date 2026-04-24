@@ -51,6 +51,7 @@ pub struct AttestationParams {
     pub unverified_count: usize,
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn write_ai_audit(
     out: &Path,
     input_path: &Path,

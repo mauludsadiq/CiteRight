@@ -27,7 +27,7 @@ fn read_docx(path: &Path) -> Result<String> {
     let mut out = String::new();
     loop {
         match reader.read_event_into(&mut buf) {
-            Ok(Event::Text(e)) => out.push_str(&e.unescape()?.to_string()),
+            Ok(Event::Text(e)) => out.push_str(e.unescape()?.as_ref()),
             Ok(Event::Start(e)) if e.name().as_ref() == b"w:p" => out.push('\n'),
             Ok(Event::Eof) => break,
             Err(e) => anyhow::bail!("docx xml parse error: {e}"),

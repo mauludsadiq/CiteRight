@@ -145,7 +145,8 @@ fn main() -> Result<()> {
             let _selected_claims = verify_selected::selected_to_claims(&selections)?;
             let lookup = courtlistener::FixtureLookup::from_file(&offline_fixtures)?;
             let lookups = if live {
-                let client = CourtListenerClient::new(token.clone(), endpoint.clone())?;
+                let resolved_token = token.clone().or_else(|| std::env::var("COURTLISTENER_TOKEN").ok());
+                let client = CourtListenerClient::new(resolved_token, endpoint.clone())?;
                 let snapshot = snapshot::fetch_live_snapshot(&text, &client)?;
 snapshot::persist_snapshot(&out, &snapshot)?;
                 snapshot.records
@@ -164,7 +165,9 @@ snapshot::persist_snapshot(&out, &snapshot)?;
             })?;
             println!("{}", serde_json::to_string_pretty(&artifacts)?);
             if analyze {
-                let analysis_token = token.clone().unwrap_or_default();
+                let analysis_token = token.clone()
+                    .or_else(|| std::env::var("COURTLISTENER_TOKEN").ok())
+                    .unwrap_or_default();
                 let brief_text = &text;
                 let mut analyses = Vec::new();
                 let mut graph = reasoning::ArgumentGraph::new();

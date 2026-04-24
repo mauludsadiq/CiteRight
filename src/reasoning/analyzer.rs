@@ -74,7 +74,7 @@ pub fn fetch_opinion_and_analyze(
     } else {
         holding_node.holdings.iter()
             .take(5)
-            .map(|h| format!("[{}] {}", format!("{:?}", h.confidence), h.text))
+            .map(|h| format!("[{:?}] {}", h.confidence, h.text))
             .collect::<Vec<_>>()
             .join("\n")
     };

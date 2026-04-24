@@ -46,6 +46,12 @@ pub struct ArgumentGraph {
     pub graph_digest: String,
 }
 
+impl Default for ArgumentGraph {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ArgumentGraph {
     pub fn new() -> Self {
         Self {
