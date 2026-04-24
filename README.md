@@ -141,6 +141,39 @@ GitHub Actions runs on every push and pull request: cargo test, cargo clippy -D 
     fixtures/                       Offline fixture data for CI
     tests/                          Integration tests
 
+## Web Interface
+
+CiteRight includes a web interface for attorneys who prefer not to use the CLI.
+
+Run locally:
+
+    cargo run --features server --bin citeright-server
+
+Then open http://localhost:3000 in your browser. Upload a legal document, optionally enter attorney attestation details, and click Verify Citations. The interface returns verified/unverified status for every citation and a signed audit receipt.
+
+Configure with environment variables:
+
+    CITERIGHT_PORT       Port to listen on (default: 3000)
+    CITERIGHT_FIXTURE    Path to offline fixture file (default: fixtures/courtlistener_fixture.json)
+    COURTLISTENER_TOKEN  CourtListener API token for live mode
+    OPENAI_API_KEY       OpenAI API key for --analyze
+
+Run with Docker:
+
+    docker build -t citeright .
+    docker run --rm -p 3000:3000 \
+      -e COURTLISTENER_TOKEN=your_token \
+      -e OPENAI_API_KEY=your_key \
+      citeright-server
+
+## Deployment
+
+CiteRight server deploys as a single Docker container. It has been tested on Railway.
+
+For law firms requiring on-premise deployment, run the Docker container on any internal server. Data never leaves the firm network. Only the audit receipt JSON is produced as output — no document content is stored or logged.
+
+For managed deployment, set COURTLISTENER_TOKEN and OPENAI_API_KEY as environment variables in your hosting platform.
+
 ## Legal Notice
 
 CiteRight is a verification and analysis tool, not legal advice. A VERIFIED result means the case exists. A Supported assessment means an LLM found the claim consistent with the extracted holding. Neither constitutes legal advice or guarantees the citation is used correctly in context. Attorney judgment remains required.
