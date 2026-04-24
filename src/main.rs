@@ -58,7 +58,7 @@ enum Commands {
     Resolve { input: PathBuf, #[arg(long)] offline_fixtures: PathBuf },
     Select { input: PathBuf, #[arg(long)] offline_fixtures: PathBuf },
     Audit { input: PathBuf, #[arg(long)] offline_fixtures: PathBuf, #[arg(long, default_value = "out/ai_audit")] out: PathBuf },
-    VerifyAi { input: PathBuf, offline_fixtures: PathBuf, out: PathBuf, #[arg(long)] live: bool, #[arg(long)] token: Option<String>, #[arg(long)] endpoint: Option<String> },
+    VerifyAi { input: PathBuf, offline_fixtures: PathBuf, out: PathBuf, #[arg(long)] live: bool, #[arg(long)] token: Option<String>, #[arg(long)] endpoint: Option<String>, #[arg(long)] attorney_name: Option<String>, #[arg(long)] bar_number: Option<String>, #[arg(long)] jurisdiction: Option<String>, #[arg(long)] block_unverified: bool },
     Artifacts { input: PathBuf, #[arg(long)] offline_fixtures: PathBuf },
     Bind { input: PathBuf, #[arg(long)] offline_fixtures: PathBuf },
     Report { input: PathBuf, #[arg(long)] offline_fixtures: PathBuf, #[arg(long, default_value = "out/bound_citations_report.md")] out: PathBuf },
@@ -123,11 +123,17 @@ fn main() -> Result<()> {
             let candidates = candidates::generate_candidates(&needs)?;
             let resolutions = resolver::resolve_candidates_with_fixtures(&candidates, &offline_fixtures)?;
             let selections = selector::select_best_candidates(&needs, &candidates, &resolutions)?;
-            let receipt = audit::write_ai_audit(&out, &input, &claims, &needs, &candidates, &resolutions, &selections)?;
+            let receipt = audit::write_ai_audit(&out, &input, &claims, &needs, &candidates, &resolutions, &selections, audit::AttestationParams {
+                attorney_name: None,
+                bar_number: None,
+                jurisdiction: None,
+                verified_count: 0,
+                unverified_count: 0,
+            })?;
             println!("{}", serde_json::to_string_pretty(&receipt)?);
             Ok(())
         }
-        Commands::VerifyAi { input, offline_fixtures, out, live, token, endpoint } => {
+        Commands::VerifyAi { input, offline_fixtures, out, live, token, endpoint, attorney_name, bar_number, jurisdiction, block_unverified } => {
             let text = document::read_document(&input)?;
             let claims = claims::extract_legal_claims(&text)?;
             let needs = planner::plan_citation_needs(&claims)?;
@@ -145,7 +151,20 @@ snapshot::persist_snapshot(&out, &snapshot)?;
                 lookup.lookup_text(&text)?
             };
             let artifacts = artifact::artifacts_from_lookup_results(&lookups)?;
+            let verified_count = artifacts.iter().filter(|a| a.verification_status == crate::models::VerificationStatus::Verified).count();
+            let unverified_count = artifacts.iter().filter(|a| a.verification_status != crate::models::VerificationStatus::Verified).count();
+            let _receipt = audit::write_ai_audit(&out, &input, &claims, &needs, &candidates, &resolutions, &selections, audit::AttestationParams {
+                attorney_name,
+                bar_number,
+                jurisdiction,
+                verified_count,
+                unverified_count,
+            })?;
             println!("{}", serde_json::to_string_pretty(&artifacts)?);
+            if block_unverified && unverified_count > 0 {
+                eprintln!("BLOCKED: {} unverified citation(s) found. Filing gate failed.", unverified_count);
+                std::process::exit(1);
+            }
             Ok(())
         }
         Commands::Artifacts { input, offline_fixtures } => {

@@ -13,6 +13,7 @@ pub struct CaseArtifact {
     pub absolute_url: Option<String>,
     pub source: String,
     pub source_digest: String,
+    pub verification_status: crate::models::VerificationStatus,
 }
 
 pub fn artifacts_from_lookup_results(results: &[LookupRecord]) -> Result<Vec<CaseArtifact>> {
@@ -20,9 +21,12 @@ pub fn artifacts_from_lookup_results(results: &[LookupRecord]) -> Result<Vec<Cas
 
     for result in results {
         for cluster in &result.clusters {
-            let canonical_id = match cluster.id {
-                Some(id) => format!("cluster:{}", id),
-                None => continue,
+            let (canonical_id, verification_status) = match cluster.id {
+                Some(id) => (format!("cluster:{}", id), crate::models::VerificationStatus::Verified),
+                None => (
+                    format!("unverified:{}", result.raw_citation),
+                    crate::models::VerificationStatus::Unverified { reason: crate::models::UnverifiedReason::NotFound },
+                ),
             };
 
             let citations = cluster
@@ -43,6 +47,7 @@ pub fn artifacts_from_lookup_results(results: &[LookupRecord]) -> Result<Vec<Cas
                 absolute_url: cluster.absolute_url.clone(),
                 source: result.source.clone(),
                 source_digest: result.raw_response_digest.clone(),
+                verification_status,
             };
 
             artifact.artifact_id = sha256_json(&artifact)?;
@@ -75,4 +80,59 @@ mod tests {
         let artifacts = artifacts_from_lookup_results(&[]).unwrap();
         assert!(artifacts.is_empty());
     }
+    #[test]
+    fn cluster_without_id_produces_unverified_artifact() {
+        use crate::models::{CanonicalCluster, LookupRecord, VerificationStatus, UnverifiedReason};
+        let record = LookupRecord {
+            source: "test".to_string(),
+            request_digest: "digest".to_string(),
+            http_status: Some(200),
+            api_status: Some(200),
+            raw_citation: "Fake v. Case, 999 F.3d 1".to_string(),
+            normalized_citations: vec![],
+            clusters: vec![CanonicalCluster {
+                id: None,
+                case_name: Some("Fake v. Case".to_string()),
+                absolute_url: None,
+                date_filed: None,
+                citations: vec![],
+            }],
+            error_message: "".to_string(),
+            raw_response_digest: "digest".to_string(),
+        };
+        let artifacts = artifacts_from_lookup_results(&[record]).unwrap();
+        assert_eq!(artifacts.len(), 1);
+        assert!(matches!(
+            artifacts[0].verification_status,
+            VerificationStatus::Unverified { reason: UnverifiedReason::NotFound }
+        ));
+        assert!(artifacts[0].canonical_id.starts_with("unverified:"));
+    }
+
+    #[test]
+    fn cluster_with_id_produces_verified_artifact() {
+        use crate::models::{CanonicalCluster, LookupRecord, VerificationStatus};
+        let record = LookupRecord {
+            source: "test".to_string(),
+            request_digest: "digest".to_string(),
+            http_status: Some(200),
+            api_status: Some(200),
+            raw_citation: "Obergefell v. Hodges".to_string(),
+            normalized_citations: vec![],
+            clusters: vec![CanonicalCluster {
+                id: Some(2812209),
+                case_name: Some("Obergefell v. Hodges".to_string()),
+                absolute_url: None,
+                date_filed: None,
+                citations: vec![],
+            }],
+            error_message: "".to_string(),
+            raw_response_digest: "digest".to_string(),
+        };
+        let artifacts = artifacts_from_lookup_results(&[record]).unwrap();
+        assert_eq!(artifacts.len(), 1);
+        assert_eq!(artifacts[0].verification_status, VerificationStatus::Verified);
+        assert_eq!(artifacts[0].canonical_id, "cluster:2812209");
+    }
+
 }

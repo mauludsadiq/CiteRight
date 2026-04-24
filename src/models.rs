@@ -122,3 +122,19 @@ pub struct ClusterCitation {
     #[serde(rename = "type")]
     pub citation_type: Option<i64>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE", tag = "status")]
+pub enum VerificationStatus {
+    Verified,
+    Unverified { reason: UnverifiedReason },
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum UnverifiedReason {
+    NotFound,
+    AmbiguousMatch,
+    ApiError,
+    DigestMismatch,
+}

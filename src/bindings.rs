@@ -17,6 +17,7 @@ pub struct SelectedArtifactBinding {
     pub date_filed: Option<String>,
     pub absolute_url: Option<String>,
     pub bound: bool,
+    pub verification_status: crate::models::VerificationStatus,
     pub reason: String,
     pub deterministic_basis: String,
 }
@@ -50,6 +51,7 @@ pub fn bind_selections_to_artifacts(
                     date_filed: artifact.date_filed.clone(),
                     absolute_url: artifact.absolute_url.clone(),
                     bound: true,
+                    verification_status: artifact.verification_status.clone(),
                     reason: "canonical artifact found".to_string(),
                     deterministic_basis: "selection_artifact_binding_v0".to_string(),
                 }
@@ -65,6 +67,7 @@ pub fn bind_selections_to_artifacts(
                     date_filed: None,
                     absolute_url: None,
                     bound: false,
+                    verification_status: crate::models::VerificationStatus::Unverified { reason: crate::models::UnverifiedReason::NotFound },
                     reason: "selected canonical id has no artifact".to_string(),
                     deterministic_basis: "selection_artifact_binding_v0".to_string(),
                 }

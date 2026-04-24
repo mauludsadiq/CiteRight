@@ -5,14 +5,25 @@
     "http_status": 200,
     "api_status": 200,
     "raw_citation": "576 U.S. 644",
-    "normalized_citations": ["576 U.S. 644"],
-    "clusters": [{
-      "id": 12345,
-      "case_name": "Obergefell v. Hodges",
-      "absolute_url": "/opinion/12345/obergefell-v-hodges/",
-      "date_filed": "2015-06-26",
-      "citations": [{"volume": 576, "reporter": "U.S.", "page": "644", "type": 2}]
-    }],
+    "normalized_citations": [
+      "576 U.S. 644"
+    ],
+    "clusters": [
+      {
+        "id": 12345,
+        "case_name": "Obergefell v. Hodges",
+        "absolute_url": "/opinion/12345/obergefell-v-hodges/",
+        "date_filed": "2015-06-26",
+        "citations": [
+          {
+            "volume": 576,
+            "reporter": "U.S.",
+            "page": "644",
+            "type": 2
+          }
+        ]
+      }
+    ],
     "error_message": "",
     "raw_response_digest": "sha256:fixture-response-1"
   },
@@ -22,7 +33,9 @@
     "http_status": 200,
     "api_status": 404,
     "raw_citation": "540 B.R. 201",
-    "normalized_citations": ["540 B.R. 201"],
+    "normalized_citations": [
+      "540 B.R. 201"
+    ],
     "clusters": [],
     "error_message": "Citation not found: '540 B.R. 201'",
     "raw_response_digest": "sha256:fixture-response-2"
@@ -33,14 +46,25 @@
     "http_status": 200,
     "api_status": 200,
     "raw_citation": "576 US 644",
-    "normalized_citations": ["576 U.S. 644"],
-    "clusters": [{
-      "id": 12345,
-      "case_name": "Obergefell v. Hodges",
-      "absolute_url": "/opinion/12345/obergefell-v-hodges/",
-      "date_filed": "2015-06-26",
-      "citations": [{"volume": 576, "reporter": "U.S.", "page": "644", "type": 2}]
-    }],
+    "normalized_citations": [
+      "576 U.S. 644"
+    ],
+    "clusters": [
+      {
+        "id": 12345,
+        "case_name": "Obergefell v. Hodges",
+        "absolute_url": "/opinion/12345/obergefell-v-hodges/",
+        "date_filed": "2015-06-26",
+        "citations": [
+          {
+            "volume": 576,
+            "reporter": "U.S.",
+            "page": "644",
+            "type": 2
+          }
+        ]
+      }
+    ],
     "error_message": "",
     "raw_response_digest": "sha256:fixture-response-3"
   }
