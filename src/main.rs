@@ -196,6 +196,8 @@ snapshot::persist_snapshot(&out, &snapshot)?;
                 let nodes: Vec<&reasoning::CaseNode> = graph.nodes.values().collect();
                 let applicability = reasoning::rank_by_applicability(&nodes, &text);
 
+                let validation = reasoning::validate_argument(&graph, &applicability);
+
                 if !analyses.is_empty() {
                     println!("\n=== HOLDING ANALYSIS ===");
                     println!("{}", serde_json::to_string_pretty(&analyses)?);
@@ -203,6 +205,8 @@ snapshot::persist_snapshot(&out, &snapshot)?;
                     println!("{}", serde_json::to_string_pretty(&applicability)?);
                     println!("\n=== ARGUMENT GRAPH ===");
                     println!("{}", serde_json::to_string_pretty(&graph)?);
+                    println!("\n=== VALIDATION REPORT ===");
+                    println!("{}", serde_json::to_string_pretty(&validation)?);
                 }
             }
             if block_unverified && unverified_count > 0 {
