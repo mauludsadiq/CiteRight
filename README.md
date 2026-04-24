@@ -1,167 +1,124 @@
-# Cite Right
+# CiteRight
 
-**Cite Right** is a Rust legal citation proof gate for AI-drafted legal text.
+CiteRight is a Rust command-line tool that verifies legal citations in AI-drafted documents before filing. It is a pre-filing proof gate.
 
-It converts legal citations from probabilistic strings into deterministic verification artifacts. A citation that cannot be resolved to a canonical legal source is blocked or redacted before downstream review.
+It answers one question per citation: does this case actually exist in a canonical legal source?
 
-## Core Rule
+If it does not, the citation is flagged UNVERIFIED and the pipeline exits non-zero before the document can be filed. This is the class of error that caused the Sullivan and Cromwell AI hallucination incident.
 
-```text
-Verify or the object does not exist.
-```
+## How It Works
 
-## What It Does
+1. Extract all citations from the input document
+2. Look up each citation against CourtListener (live API or offline fixture)
+3. Produce an explicit VERIFIED or UNVERIFIED artifact for every citation
+4. Generate an attorney-signed audit receipt bound to the document SHA-256
+5. Render an HTML verification report
+6. Exit 1 if any citation is unverified and --block-unverified is set
 
-Cite Right takes a legal document, extracts citations, resolves them through a canonical source adapter, classifies each citation, and writes a receipt chain.
+Silence is never success. Every citation produces an artifact.
 
-Supported input formats:
+## Install
 
-- `.txt`
-- `.md`
-- `.docx`
-- `.pdf`
+    git clone https://github.com/mauludsadiq/CiteRight.git
+    cd CiteRight
+    cargo build --release
 
-Primary canonical source adapter:
+Requires Rust 1.76+.
 
-- CourtListener `/api/rest/v4/citation-lookup/`
+## Quick Start
 
-CourtListener documents that this endpoint can look up individual citations or parse citations from blocks of text, and that it is useful as a guardrail to prevent hallucinated citations. It returns statuses including `200`, `300`, `400`, `404`, and `429`.
+Offline mode (deterministic, CI-safe, no token required):
 
-## Output Artifacts
+    cargo run -- verify-ai brief.md fixtures/courtlistener_fixture.json out/
 
-```text
-out/legal_gate_run/
-  verified_brief.md
-  failed_claims.json
-  citations.json
-  receipt_chain.json
-  run_receipt.json
-```
+Live mode (hits CourtListener API):
 
-## Install / Build
+    cargo run -- verify-ai brief.md fixtures/courtlistener_fixture.json out/ --live --token $COURTLISTENER_TOKEN
 
-```bash
-cargo build
-```
+Pre-filing gate (exits 1 if any citation unverified):
 
-## Run With Offline Fixture
+    cargo run -- verify-ai brief.md fixtures/courtlistener_fixture.json out/ --block-unverified --attorney-name "Jane Smith" --bar-number "CA-123456" --jurisdiction "California"
 
-This mode is deterministic and does not require a CourtListener token.
+HTML report:
 
-```bash
-cargo run -- verify fixtures/sample_brief.md --out out/sample --offline-fixtures fixtures/courtlistener_fixture.json
-```
+    cargo run -- report brief.md --offline-fixtures fixtures/courtlistener_fixture.json --out report.html
 
-Expected behavior:
+## verify-ai Flags
 
-- `576 U.S. 644` is verified.
-- `540 B.R. 201` is blocked.
-- `576 US 644` is healed to `576 U.S. 644`.
+    --live                    Hit live CourtListener API instead of fixture
+    --token <TOKEN>           CourtListener API token
+    --endpoint <URL>          Override CourtListener endpoint
+    --attorney-name <NAME>    Attorney name for audit receipt
+    --bar-number <NUMBER>     Bar number for audit receipt
+    --jurisdiction <NAME>     Jurisdiction for audit receipt
+    --block-unverified        Exit 1 if any citation is unverified
 
-## Run Against CourtListener
+## Verification Status
 
-CourtListener's API uses token authentication for REST calls.
+VERIFIED: citation resolved to a canonical CourtListener cluster
+UNVERIFIED NOT_FOUND: no matching case found
+UNVERIFIED AMBIGUOUS_MATCH: multiple possible cases, cannot resolve
+UNVERIFIED API_ERROR: CourtListener returned an error
+UNVERIFIED DIGEST_MISMATCH: response hash does not match expected
 
-```bash
-export COURTLISTENER_TOKEN="your-token-here"
-cargo run -- verify brief.docx --out out/legal_gate_run
-```
+## Audit Receipt
 
-You may also pass the token explicitly:
+Every verify-ai run produces an audit receipt at out/ai_audit_receipt.json containing:
 
-```bash
-cargo run -- verify brief.pdf --out out/legal_gate_run --courtlistener-token "your-token-here"
-```
+- audit_id: SHA-256 over the full pipeline state
+- input_digest: SHA-256 of the input document
+- attorney attestation: name, bar number, jurisdiction, attestation text
+- verified_count and unverified_count
+- digests of claims, needs, candidates, resolutions, and selections
+- receipt_digest: SHA-256 of the entire receipt
 
-## CLI
+The attestation_text field is a plain-English statement suitable for attachment to a filing as an exhibit.
 
-```text
-citeright verify <INPUT> --out <DIR> [--courtlistener-token <TOKEN>] [--offline-fixtures <JSON>]
-citeright extract <INPUT>
-```
+## HTML Report
 
-## Verification States
+    cargo run -- report brief.md --offline-fixtures fixtures/courtlistener_fixture.json --out report.html
 
-| State | Meaning | Action |
-|---|---|---|
-| `VERIFIED` | Citation resolved to exactly one canonical artifact | Keep |
-| `HEALED` | Citation had a unique normalized correction | Replace with normalized form |
-| `AMBIGUOUS` | Multiple possible canonical artifacts | Block / human review |
-| `BLOCKED` | No canonical source or invalid citation | Block / redact |
+Opens as a clean attorney-readable table showing status, case name, citation, date filed, canonical ID, and source link for every citation in the document.
 
-## Receipt Model
+## Testing
 
-Each claim receives a deterministic receipt digest over:
+Run all tests:
 
-- raw citation
-- normalized citation candidates
-- canonical source response
-- verification status
-- selected action
-- reason
+    cargo test
 
-The run receipt commits to:
+Run live integration test (requires CourtListener token):
 
-- input digest
-- policy
-- claim counts
-- output artifact paths
-- full receipt chain digest
-
-Example failure:
-
-```json
-{
-  "raw": "540 B.R. 201",
-  "status": "BLOCKED",
-  "reason": "no canonical source found",
-  "action": "BLOCK_OR_REDACT"
-}
-```
-
-## VS Code
-
-Open the unzipped folder in VS Code. The workspace includes:
-
-- `.vscode/settings.json`
-- `.vscode/tasks.json`
-- `.vscode/launch.json`
-
-Available tasks:
-
-- `cargo build`
-- `cargo test`
-- `verify sample`
-
-## Design Boundaries
-
-This is not RAG. It does not ask whether text sounds legal. It asks whether each citation resolves to a canonical artifact.
-
-The app is adapter-based. CourtListener is the first source. Westlaw, Lexis, PACER, or local licensed corpora can be added by implementing the same lookup boundary.
+    COURTLISTENER_TOKEN=your_token cargo test --features live-tests
 
 ## Project Layout
 
-```text
-src/
-  main.rs           CLI and run orchestration
-  document.rs       txt/md/docx/pdf extraction
-  extract.rs        legal citation candidate extraction
-  courtlistener.rs  canonical source adapter + fixtures
-  verify.rs         proof gate classification
-  emit.rs           verified markdown + JSON artifact writing
-  hash.rs           SHA-256 helpers
-  models.rs         serializable contracts
-fixtures/
-  sample_brief.md
-  courtlistener_fixture.json
-docs/
-  ARCHITECTURE.md
-.vscode/
-  settings.json
-  tasks.json
-  launch.json
-```
+    src/main.rs           CLI and command dispatch
+    src/extract.rs        Citation extraction from documents
+    src/claims.rs         Legal claim parsing
+    src/planner.rs        Citation need planning
+    src/candidates.rs     Candidate generation
+    src/resolver.rs       Candidate resolution against fixtures
+    src/selector.rs       Best candidate selection
+    src/artifact.rs       VERIFIED/UNVERIFIED artifact production
+    src/bindings.rs       Selection to artifact binding
+    src/snapshot.rs       Live CourtListener API + snapshot normalization
+    src/audit.rs          Attorney audit receipt generation
+    src/report.rs         HTML verification report rendering
+    src/courtlistener.rs  CourtListener API adapter
+    src/document.rs       Document reading (md/txt/docx/pdf)
+    src/models.rs         Shared data types
+    src/hash.rs           SHA-256 helpers
+    fixtures/             Offline fixture data for CI
+    tests/                Integration tests
 
-## Legal Use Warning
+## Design Boundaries
 
-Cite Right is a verification tool, not legal advice. A `VERIFIED` result means the cited authority exists in the configured canonical source. It does not prove that the authority supports the legal proposition.
+CiteRight is not RAG. It does not evaluate whether a citation supports a legal proposition. It verifies that the cited authority exists in a canonical source.
+
+A VERIFIED result means the case exists. It does not mean the quote is accurate, the holding applies, or the citation is used correctly. Those are attorney responsibilities.
+
+CiteRight is the machine-verifiable layer beneath attorney judgment, not a replacement for it.
+
+## Legal Notice
+
+CiteRight is a verification tool, not legal advice.
