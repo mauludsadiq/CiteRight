@@ -41,4 +41,4 @@ COPY fixtures/ /app/fixtures/
 ENV RUST_LOG=citeright=info
 ENV CITERIGHT_FIXTURE=/app/fixtures/courtlistener_fixture.json
 
-ENTRYPOINT ["/usr/local/bin/citeright-server"]
+ENTRYPOINT ["/bin/sh", "-c", "echo Starting on port $PORT && /usr/local/bin/citeright-server"]
