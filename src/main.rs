@@ -167,17 +167,36 @@ snapshot::persist_snapshot(&out, &snapshot)?;
                 let analysis_token = token.clone().unwrap_or_default();
                 let brief_text = &text;
                 let mut analyses = Vec::new();
+                let mut graph = reasoning::ArgumentGraph::new();
+
                 for artifact in &artifacts {
                     if artifact.verification_status == crate::models::VerificationStatus::Verified {
                         match reasoning::fetch_opinion_and_analyze(artifact, brief_text, &analysis_token) {
-                            Ok(result) => analyses.push(result),
+                            Ok(result) => {
+                                graph.add_node_from_holding(&result.holding_node);
+                                graph.add_claim(
+                                    &artifact.canonical_id,
+                                    &result.claim_text,
+                                    vec![artifact.canonical_id.clone()],
+                                );
+                                graph.set_claim_assessment(
+                                    &artifact.canonical_id,
+                                    &format!("{:?}: {}", result.assessment.supported, result.assessment.explanation),
+                                );
+                                analyses.push(result);
+                            }
                             Err(e) => eprintln!("Analysis skipped for {}: {}", artifact.case_name, e),
                         }
                     }
                 }
+
+                graph.finalize();
+
                 if !analyses.is_empty() {
                     println!("\n=== HOLDING ANALYSIS ===");
                     println!("{}", serde_json::to_string_pretty(&analyses)?);
+                    println!("\n=== ARGUMENT GRAPH ===");
+                    println!("{}", serde_json::to_string_pretty(&graph)?);
                 }
             }
             if block_unverified && unverified_count > 0 {
