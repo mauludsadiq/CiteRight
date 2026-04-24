@@ -184,6 +184,29 @@ Layer 1 is the Citation Grounding Layer. It is deterministic, replayable, and no
 
 Layer 2 is the Legal Reasoning Layer. It fetches majority opinion text, extracts structured holdings, and uses an LLM to assess whether the brief's claim matches the holding. This layer can be wrong -- it is advisory, not authoritative. The grounding layer beneath it remains deterministic regardless of what the reasoning layer concludes.
 
+## Full Pipeline Output (--analyze)
+
+Running with --analyze produces four structured outputs in sequence:
+
+**1. Holding Analysis** — what each verified case actually held, fetched live from CourtListener opinion text and assessed by GPT-4o against the brief's claim.
+
+**2. Applicability Scores** — deterministic scoring of how relevant each case is to the argument, using keyword overlap, legal concept matching, rule alignment, and recency. No LLM required.
+
+**3. Argument Graph** — a structured graph of case nodes, typed edges (SUPPORTS / CONTRADICTS / DISTINGUISHES / CITES), and claims mapped to cited cases. Sealed with a SHA-256 graph digest.
+
+**4. Validation Report** — the final verdict. Each claim is validated as SUPPORTED, PARTIALLY_SUPPORTED, UNSUPPORTED, or UNVERIFIABLE. The overall argument is rated VALID, PARTIALLY_VALID, INVALID, or INDETERMINATE. Conflicting authority is flagged explicitly. The entire report is sealed with a SHA-256 validation digest.
+
+Example final output:
+
+    {
+      "overall": "PARTIALLY_VALID",
+      "claim_validations": [...],
+      "unsupported_claims": ["cluster:8526346"],
+      "conflicting_authority": [],
+      "summary": "Overall validity: PartiallyValid. 1/2 claims supported by verified authority. 1 claim(s) unsupported.",
+      "validation_digest": "sha256:..."
+    }
+
 ## Legal Notice
 
 CiteRight is a verification tool, not legal advice.
