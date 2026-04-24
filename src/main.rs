@@ -13,6 +13,7 @@ mod bindings;
 mod audit;
 mod verify_selected;
 mod report;
+pub mod reasoning;
 mod resolver;
 mod selector;
 mod verify;
@@ -62,6 +63,7 @@ enum Commands {
     Artifacts { input: PathBuf, #[arg(long)] offline_fixtures: PathBuf },
     Bind { input: PathBuf, #[arg(long)] offline_fixtures: PathBuf },
     Report { input: PathBuf, #[arg(long)] offline_fixtures: PathBuf, #[arg(long, default_value = "out/bound_citations_report.md")] out: PathBuf },
+    
 }
 
 fn main() -> Result<()> {
