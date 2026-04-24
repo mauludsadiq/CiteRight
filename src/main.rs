@@ -7,6 +7,7 @@ mod hash;
 mod models;
 mod planner;
 mod candidates;
+mod artifact;
 mod audit;
 mod verify_selected;
 mod resolver;
@@ -55,6 +56,7 @@ enum Commands {
     Select { input: PathBuf, #[arg(long)] offline_fixtures: PathBuf },
     Audit { input: PathBuf, #[arg(long)] offline_fixtures: PathBuf, #[arg(long, default_value = "out/ai_audit")] out: PathBuf },
     VerifyAi { input: PathBuf, #[arg(long)] offline_fixtures: PathBuf, #[arg(long, default_value = "out/ai_verify")] out: PathBuf },
+    Artifacts { input: PathBuf, #[arg(long)] offline_fixtures: PathBuf },
 }
 
 fn main() -> Result<()> {
@@ -129,6 +131,14 @@ fn main() -> Result<()> {
             let selections = selector::select_best_candidates(&needs, &candidates, &resolutions)?;
             let selected_claims = verify_selected::selected_to_claims(&selections)?;
             println!("{}", serde_json::to_string_pretty(&selected_claims)?);
+            Ok(())
+        }
+        Commands::Artifacts { input, offline_fixtures } => {
+            let text = document::read_document(&input)?;
+            let lookup = courtlistener::FixtureLookup::from_file(&offline_fixtures)?;
+            let lookups = lookup.lookup_text(&text)?;
+            let artifacts = artifact::artifacts_from_lookup_results(&lookups)?;
+            println!("{}", serde_json::to_string_pretty(&artifacts)?);
             Ok(())
         }
     }
