@@ -45,6 +45,7 @@ async fn main() {
 
     let addr = SocketAddr::from(([0, 0, 0, 0], port));
     info!("CiteRight server listening on http://{}", addr);
+    info!("PORT env var: {:?}", std::env::var("PORT"));
 
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
