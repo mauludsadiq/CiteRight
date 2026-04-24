@@ -8,6 +8,7 @@ mod models;
 mod planner;
 mod candidates;
 mod audit;
+mod verify_selected;
 mod resolver;
 mod selector;
 mod verify;
@@ -53,6 +54,7 @@ enum Commands {
     Resolve { input: PathBuf, #[arg(long)] offline_fixtures: PathBuf },
     Select { input: PathBuf, #[arg(long)] offline_fixtures: PathBuf },
     Audit { input: PathBuf, #[arg(long)] offline_fixtures: PathBuf, #[arg(long, default_value = "out/ai_audit")] out: PathBuf },
+    VerifyAi { input: PathBuf, #[arg(long)] offline_fixtures: PathBuf, #[arg(long, default_value = "out/ai_verify")] out: PathBuf },
 }
 
 fn main() -> Result<()> {
@@ -116,6 +118,17 @@ fn main() -> Result<()> {
             let selections = selector::select_best_candidates(&needs, &candidates, &resolutions)?;
             let receipt = audit::write_ai_audit(&out, &input, &claims, &needs, &candidates, &resolutions, &selections)?;
             println!("{}", serde_json::to_string_pretty(&receipt)?);
+            Ok(())
+        }
+        Commands::VerifyAi { input, offline_fixtures, out: _ } => {
+            let text = document::read_document(&input)?;
+            let claims = claims::extract_legal_claims(&text)?;
+            let needs = planner::plan_citation_needs(&claims)?;
+            let candidates = candidates::generate_candidates(&needs)?;
+            let resolutions = resolver::resolve_candidates_with_fixtures(&candidates, &offline_fixtures)?;
+            let selections = selector::select_best_candidates(&needs, &candidates, &resolutions)?;
+            let selected_claims = verify_selected::selected_to_claims(&selections)?;
+            println!("{}", serde_json::to_string_pretty(&selected_claims)?);
             Ok(())
         }
     }
