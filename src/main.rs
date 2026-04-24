@@ -8,6 +8,7 @@ mod models;
 mod planner;
 mod candidates;
 mod resolver;
+mod selector;
 mod verify;
 
 use anyhow::{Context, Result};
@@ -49,6 +50,7 @@ enum Commands {
     Plan { input: PathBuf },
     Candidates { input: PathBuf },
     Resolve { input: PathBuf, #[arg(long)] offline_fixtures: PathBuf },
+    Select { input: PathBuf, #[arg(long)] offline_fixtures: PathBuf },
 }
 
 fn main() -> Result<()> {
@@ -91,6 +93,16 @@ fn main() -> Result<()> {
             let candidates = candidates::generate_candidates(&needs)?;
             let resolutions = resolver::resolve_candidates_with_fixtures(&candidates, &offline_fixtures)?;
             println!("{}", serde_json::to_string_pretty(&resolutions)?);
+            Ok(())
+        }
+        Commands::Select { input, offline_fixtures } => {
+            let text = document::read_document(&input)?;
+            let claims = claims::extract_legal_claims(&text)?;
+            let needs = planner::plan_citation_needs(&claims)?;
+            let candidates = candidates::generate_candidates(&needs)?;
+            let resolutions = resolver::resolve_candidates_with_fixtures(&candidates, &offline_fixtures)?;
+            let selections = selector::select_best_candidates(&needs, &candidates, &resolutions)?;
+            println!("{}", serde_json::to_string_pretty(&selections)?);
             Ok(())
         }
     }
