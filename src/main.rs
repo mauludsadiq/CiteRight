@@ -59,7 +59,7 @@ enum Commands {
     Resolve { input: PathBuf, #[arg(long)] offline_fixtures: PathBuf },
     Select { input: PathBuf, #[arg(long)] offline_fixtures: PathBuf },
     Audit { input: PathBuf, #[arg(long)] offline_fixtures: PathBuf, #[arg(long, default_value = "out/ai_audit")] out: PathBuf },
-    VerifyAi { input: PathBuf, offline_fixtures: PathBuf, out: PathBuf, #[arg(long)] live: bool, #[arg(long)] token: Option<String>, #[arg(long)] endpoint: Option<String>, #[arg(long)] attorney_name: Option<String>, #[arg(long)] bar_number: Option<String>, #[arg(long)] jurisdiction: Option<String>, #[arg(long)] block_unverified: bool },
+    VerifyAi { input: PathBuf, offline_fixtures: PathBuf, out: PathBuf, #[arg(long)] live: bool, #[arg(long)] token: Option<String>, #[arg(long)] endpoint: Option<String>, #[arg(long)] attorney_name: Option<String>, #[arg(long)] bar_number: Option<String>, #[arg(long)] jurisdiction: Option<String>, #[arg(long)] block_unverified: bool, #[arg(long)] analyze: bool },
     Artifacts { input: PathBuf, #[arg(long)] offline_fixtures: PathBuf },
     Bind { input: PathBuf, #[arg(long)] offline_fixtures: PathBuf },
     Report { input: PathBuf, #[arg(long)] offline_fixtures: PathBuf, #[arg(long, default_value = "out/bound_citations_report.md")] out: PathBuf },
@@ -135,7 +135,7 @@ fn main() -> Result<()> {
             println!("{}", serde_json::to_string_pretty(&receipt)?);
             Ok(())
         }
-        Commands::VerifyAi { input, offline_fixtures, out, live, token, endpoint, attorney_name, bar_number, jurisdiction, block_unverified } => {
+        Commands::VerifyAi { input, offline_fixtures, out, live, token, endpoint, attorney_name, bar_number, jurisdiction, block_unverified, analyze } => {
             let text = document::read_document(&input)?;
             let claims = claims::extract_legal_claims(&text)?;
             let needs = planner::plan_citation_needs(&claims)?;
@@ -163,6 +163,23 @@ snapshot::persist_snapshot(&out, &snapshot)?;
                 unverified_count,
             })?;
             println!("{}", serde_json::to_string_pretty(&artifacts)?);
+            if analyze {
+                let analysis_token = token.clone().unwrap_or_default();
+                let brief_text = &text;
+                let mut analyses = Vec::new();
+                for artifact in &artifacts {
+                    if artifact.verification_status == crate::models::VerificationStatus::Verified {
+                        match reasoning::fetch_opinion_and_analyze(artifact, brief_text, &analysis_token) {
+                            Ok(result) => analyses.push(result),
+                            Err(e) => eprintln!("Analysis skipped for {}: {}", artifact.case_name, e),
+                        }
+                    }
+                }
+                if !analyses.is_empty() {
+                    println!("\n=== HOLDING ANALYSIS ===");
+                    println!("{}", serde_json::to_string_pretty(&analyses)?);
+                }
+            }
             if block_unverified && unverified_count > 0 {
                 eprintln!("BLOCKED: {} unverified citation(s) found. Filing gate failed.", unverified_count);
                 std::process::exit(1);
